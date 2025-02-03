@@ -37,12 +37,16 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libgl1-mesa-glx libglfw3 libglfw3-dev mesa-utils
-          # Set up virtual display
+          sudo apt-get install -y \
+          libglfw3 \
+          libglfw3-dev \
+          mesa-utils \
+          libosmesa6-dev \
+          libx11-dev
+          # Ensure you have a virtual display set up for headless rendering
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
           echo "Virtual display started on DISPLAY=:99"
-        
       # Windows Setup
       - name: Install OpenGL Dependencies on Windows
         if: runner.os == 'Windows'
@@ -67,4 +71,4 @@ jobs:
         env:
           DISPLAY: ":99"  # Only set for Linux to use Xvfb
         run: |
-          python your_opengl_app.py  # Replace with your script name
+          python main.py  # Replace with your script name
