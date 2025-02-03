@@ -48,23 +48,31 @@ jobs:
           export DISPLAY=:99
           echo "Virtual display started on DISPLAY=:99"
       # Windows Setup Using vcpkg
+      # Windows Setup Using vcpkg
       - name: Install OpenGL and GLFW using vcpkg on Windows
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          # Install vcpkg
-          Invoke-WebRequest -Uri https://github.com/microsoft/vcpkg/releases/download/2022.11.11/vcpkg-x64-windows.tar.gz -OutFile vcpkg.tar.gz
-          tar -xvzf vcpkg.tar.gz
+          # Install git if not already available
+          choco install -y git
+          
+          # Clone the vcpkg repository
+          git clone https://github.com/microsoft/vcpkg.git
+      
+          # Navigate to the vcpkg directory and bootstrap it
           cd vcpkg
           .\bootstrap-vcpkg.bat
-          
+      
           # Install GLFW and OpenGL dependencies using vcpkg
           .\vcpkg install glfw3
           .\vcpkg install opengl
           .\vcpkg integrate install
-
+      
           # Set the vcpkg toolchain path for later builds (if necessary)
           [Environment]::SetEnvironmentVariable('VCPKG_ROOT', "$(pwd)\vcpkg", 'User')
+      
+          # Check that vcpkg installed properly
+          .\vcpkg list
 
       # macOS Setup
       - name: Install OpenGL Dependencies on macOS
