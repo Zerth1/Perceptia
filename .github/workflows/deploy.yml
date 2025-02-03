@@ -49,46 +49,59 @@ jobs:
           echo "Virtual display started on DISPLAY=:99"
       # Windows Setup Using vcpkg
       # Windows Setup Using vcpkg
-      - name: Install OpenGL and GLFW using vcpkg on Windows
+      # Windows Setup - Install Git, OpenGL, and GLFW using Chocolatey and vcpkg
+      - name: Install dependencies on Windows
         if: runner.os == 'Windows'
-        shell: powershell
         run: |
-          # Install git if not already available
-          choco install -y git
+          # Ensure Chocolatey is installed first (if not already present)
+          Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
           
-          # Clone the vcpkg repository
-          git clone https://github.com/microsoft/vcpkg.git
+          # Retry mechanism for installing Git
+          $ErrorActionPreference = "Stop"
+          $maxRetries = 3
+          $attempt = 0
+          while ($attempt -lt $maxRetries) {
+            try {
+              choco install git.install -y
+              Write-Host "Git installed successfully!"
+              break
+            } catch {
+              $attempt++
+              Write-Warning "Attempt $attempt failed, retrying..."
+              Start-Sleep -Seconds 10
+            }
+          }
       
-          # Navigate to the vcpkg directory and bootstrap it
+          # Install OpenGL and GLFW via vcpkg (using GitHub Actions' runner)
+          git clone https://github.com/microsoft/vcpkg.git
           cd vcpkg
           .\bootstrap-vcpkg.bat
-      
-          # Install GLFW and OpenGL dependencies using vcpkg
           .\vcpkg install glfw3
           .\vcpkg install opengl
           .\vcpkg integrate install
       
-          # Set the vcpkg toolchain path for later builds (if necessary)
-          [Environment]::SetEnvironmentVariable('VCPKG_ROOT', "$(pwd)\vcpkg", 'User')
-      
-          # Check that vcpkg installed properly
+          # Verify installations
+          git --version
           .\vcpkg list
+      
+          # Run the application
+          python main.py
+
 
       # macOS Setup
       - name: Install OpenGL Dependencies on macOS
         if: runner.os == 'macOS'
         run: |
+          # Update Homebrew and install necessary libraries
           brew update
           brew install glfw
           brew install mesa  # Mesa is available on macOS for OpenGL
-          # You may want to force software rendering (if necessary)
+      
+          # You can try forcing software rendering if needed (e.g., if you encounter OpenGL context issues)
           export LIBGL_ALWAYS_SOFTWARE=1
       
-          # Check that OpenGL and GLFW are installed and functioning
-          glxinfo | grep "OpenGL version"
-      
-          # Run the application in the background (for non-blocking)
-          nohup python main.py &
+          # Run the application (for debugging, if OpenGL context is needed)
+          python main.py
 
       - name: Run Python OpenGL Application
         env:
