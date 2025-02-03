@@ -47,17 +47,24 @@ jobs:
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
           echo "Virtual display started on DISPLAY=:99"
-      # Windows Setup
-      - name: Install OpenGL Dependencies on Windows
+      # Windows Setup Using vcpkg
+      - name: Install OpenGL and GLFW using vcpkg on Windows
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          # Install OpenGL, Mesa, GLFW using Chocolatey
-          choco install -y opengl mesa glfw
-          # Force indirect OpenGL rendering to avoid WGL errors
-          $env:LIBGL_ALWAYS_INDIRECT = "1"
-          [Environment]::SetEnvironmentVariable("LIBGL_ALWAYS_INDIRECT", "1", "Machine")
-          Write-Output "LIBGL_ALWAYS_INDIRECT set to 1"
+          # Install vcpkg
+          Invoke-WebRequest -Uri https://github.com/microsoft/vcpkg/releases/download/2022.11.11/vcpkg-x64-windows.tar.gz -OutFile vcpkg.tar.gz
+          tar -xvzf vcpkg.tar.gz
+          cd vcpkg
+          .\bootstrap-vcpkg.bat
+          
+          # Install GLFW and OpenGL dependencies using vcpkg
+          .\vcpkg install glfw3
+          .\vcpkg install opengl
+          .\vcpkg integrate install
+
+          # Set the vcpkg toolchain path for later builds (if necessary)
+          [Environment]::SetEnvironmentVariable('VCPKG_ROOT', "$(pwd)\vcpkg", 'User')
 
       # macOS Setup
       - name: Install OpenGL Dependencies on macOS
@@ -66,6 +73,15 @@ jobs:
           brew update
           brew install glfw
           brew install mesa
+          brew install libosmesa # Software renderer for OpenGL
+          # Force software rendering (NSGL -> Software OpenGL rendering fallback)
+          export LIBGL_ALWAYS_SOFTWARE=1
+      
+          # Verify OpenGL installation and display version (for debugging)
+          glxinfo | grep "OpenGL version"
+          
+          # Running the application in the background (for non-blocking)
+          nohup python main.py &
 
       - name: Run Python OpenGL Application
         env:
