@@ -80,15 +80,14 @@ jobs:
         run: |
           brew update
           brew install glfw
-          brew install mesa
-          brew install libosmesa # Software renderer for OpenGL
-          # Force software rendering (NSGL -> Software OpenGL rendering fallback)
+          brew install mesa  # Mesa is available on macOS for OpenGL
+          # You may want to force software rendering (if necessary)
           export LIBGL_ALWAYS_SOFTWARE=1
       
-          # Verify OpenGL installation and display version (for debugging)
+          # Check that OpenGL and GLFW are installed and functioning
           glxinfo | grep "OpenGL version"
-          
-          # Running the application in the background (for non-blocking)
+      
+          # Run the application in the background (for non-blocking)
           nohup python main.py &
 
       - name: Run Python OpenGL Application
